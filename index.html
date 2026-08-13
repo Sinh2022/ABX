@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ABX Audio Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 450px; margin: 30px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; text-align: center; }
+        button { margin: 5px; padding: 8px 16px; cursor: pointer; }
+        .hidden { display: none; }
+        .control-group { margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <h2>ABX Audio Tester</h2>
+
+    <div class="control-group">
+        <button onclick="document.getElementById('fileA').click()">Load File A</button>
+        <input type="file" id="fileA" accept="audio/*" class="hidden" onchange="handleFile(this, 'lblA', 'a')">
+        <div id="lblA">File A: Not loaded</div>
+    </div>
+
+    <div class="control-group">
+        <button onclick="document.getElementById('fileB').click()">Load File B</button>
+        <input type="file" id="fileB" accept="audio/*" class="hidden" onchange="handleFile(this, 'lblB', 'b')">
+        <div id="lblB">File B: Not loaded</div>
+    </div>
+
+    <div class="control-group">
+        <label>Number of Trials: </label>
+        <input type="number" id="trials" value="10" min="1" style="width: 50px; text-align: center;">
+    </div>
+
+    <button onclick="startTest()" style="background-color: #4CAF50; color: white;">Start ABX Test</button>
+
+    <div id="testArea" class="hidden" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+        <h3 id="trialStatus">Trial 1</h3>
+        <div>
+            <button onclick="playAudio('a')">Play A</button>
+            <button onclick="playAudio('b')">Play B</button>
+            <button onclick="playAudio('x')" style="background-color: #ffeb3b;">Play X</button>
+        </div>
+        <p>Is X equal to A or B?</p>
+        <div>
+            <button onclick="makeChoice(true)">X = A</button>
+            <button onclick="makeChoice(false)">X = B</button>
+        </div>
+    </div>
+
+    <script>
+        let audioA = null, audioB = null, audioX = null;
+        let xIsA = false;
+        let totalTrials = 0, currentTrial = 0, correctAnswers = 0;
+
+        function handleFile(input, labelId, type) {
+            const file = input.files[0];
+            if (file) {
+                document.getElementById(labelId).innerText = type.toUpperCase() + ": " + file.name;
+                const url = URL.createObjectURL(file);
+                if (type === 'a') audioA = new Audio(url);
+                if (type === 'b') audioB = new Audio(url);
+            }
+        }
+
+        function playAudio(type) {
+            if (audioA) audioA.pause();
+            if (audioB) audioB.pause();
+            
+            let target = null;
+            if (type === 'a') target = audioA;
+            if (type === 'b') target = audioB;
+            if (type === 'x') target = audioX;
+
+            if (target) {
+                target.currentTime = 0;
+                target.play();
+            }
+        }
+
+        function startTest() {
+            if (!audioA || !audioB) {
+                alert("Please load both audio files.");
+                return;
+            }
+            totalTrials = parseInt(document.getElementById('trials').value);
+            if (!totalTrials || totalTrials < 1) {
+                alert("Enter a valid number of trials.");
+                return;
+            }
+
+            currentTrial = 0;
+            correctAnswers = 0;
+            document.getElementById('testArea').classList.remove('hidden');
+            nextTrial();
+        }
+
+        function nextTrial() {
+            if (currentTrial < totalTrials) {
+                currentTrial++;
+                xIsA = Math.random() < 0.5;
+                audioX = xIsA ? audioA : audioB;
+                document.getElementById('trialStatus').innerText = `Trial ${currentTrial} of ${totalTrials}`;
+            } else {
+                finishTest();
+            }
+        }
+
+        function makeChoice(choseA) {
+            if (choseA === xIsA) correctAnswers++;
+            nextTrial();
+        }
+
+        function finishTest() {
+            document.getElementById('testArea').classList.add('hidden');
+            const accuracy = ((correctAnswers / totalTrials) * 100).toFixed(1);
+            
+            let conclusion = "";
+            if (accuracy >= 75 && totalTrials >= 5) {
+                conclusion = "Statistically Significant Difference Detected";
+            } else {
+                conclusion = "No Significant Difference Detected";
+            }
+
+            alert(`Test Completed!\nScore: ${correctAnswers} / ${totalTrials}\nAccuracy: ${accuracy}%\nConclusion: ${conclusion}`);
+        }
+    </script>
+</body>
+</html>
